@@ -8,11 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image
+  Image,
+  ActivityIndicator
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, Href } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Sử dụng Custom Hook mới
+import { useStorage } from '../../hooks/useStorage';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -21,13 +24,16 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Lấy hàm saveData và isLoading từ hook
+  const { saveData, isLoading } = useStorage();
+
   const handleSignUp = async () => {
     if (username && email && password.length >= 6) {
-      // Giả lập Đăng ký thành công và đăng nhập luôn
-      await AsyncStorage.setItem("userToken", "dummy-token");
-      router.replace("/(tabs)/index" as Href);
+      // Lưu token mã hóa, thời hạn 24 giờ khi Đăng ký thành công
+      await saveData('userToken', 'dummy-token-secure-123', 24); 
+      router.replace('/(tabs)');
     } else {
-      alert("Vui lòng nhập đầy đủ thông tin.");
+      alert("Vui lòng nhập đầy đủ thông tin và mật khẩu từ 6 ký tự.");
     }
   };
 
@@ -50,6 +56,7 @@ export default function SignUpScreen() {
             style={styles.input}
             value={username}
             onChangeText={setUsername}
+            editable={!isLoading} // Khóa ô nhập khi đang loading
           />
         </View>
 
@@ -62,6 +69,7 @@ export default function SignUpScreen() {
               autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
+              editable={!isLoading}
             />
             {email.includes("@") && (
               <Ionicons name="checkmark" size={24} color="#53B175" />
@@ -78,8 +86,9 @@ export default function SignUpScreen() {
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
+              editable={!isLoading}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} disabled={isLoading}>
               <Ionicons
                 name={showPassword ? "eye-outline" : "eye-off-outline"}
                 size={20}
@@ -97,13 +106,22 @@ export default function SignUpScreen() {
           <Text style={styles.termsLink}>Privacy Policy.</Text>
         </View>
 
-        <TouchableOpacity style={styles.signupButton} onPress={handleSignUp}>
-          <Text style={styles.signupButtonText}>Sign Up</Text>
+        {/* Nút Sign Up hiển thị Loading */}
+        <TouchableOpacity 
+          style={styles.signupButton} 
+          onPress={handleSignUp}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.signupButtonText}>Sign Up</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.loginContainer}>
           <Text style={styles.loginText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+          <TouchableOpacity onPress={() => router.push("/(auth)/login")} disabled={isLoading}>
             <Text style={styles.loginLink}>Log In</Text>
           </TouchableOpacity>
         </View>
@@ -157,6 +175,8 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     alignItems: "center",
     marginBottom: 20,
+    height: 67, // Giữ chiều cao cố định để không bị giật khi hiện Loading
+    justifyContent: 'center',
   },
   signupButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   loginContainer: { flexDirection: "row", justifyContent: "center" },

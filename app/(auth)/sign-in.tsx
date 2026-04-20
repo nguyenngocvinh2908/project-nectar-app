@@ -10,7 +10,7 @@ export default function SignInScreen() {
     <ScrollView style={styles.container} bounces={false}>
       <Image 
         source={require('../../assets/images/bg.png')} 
-        style={styles.headerImage} 
+        style={styles.headerImage}
       />
 
       <View style={styles.contentContainer}>

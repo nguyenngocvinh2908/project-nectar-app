@@ -1,33 +1,36 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, ActivityIndicator } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useRouter , Href} from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter, Href } from 'expo-router';
+
+// Nhập Custom Hook
+import { useStorage } from '../hooks/useStorage'; 
 
 export default function SplashScreen() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  
+  // Lấy hàm loadData và trạng thái isLoading từ Hook
+  const { loadData, isLoading } = useStorage();
 
   useEffect(() => {
-    // Hiệu ứng Fade-in
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start();
 
-    // Logic kiểm tra đăng nhập
     const checkAuth = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Đợi 2 giây
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Kiểm tra token lưu trong máy
-        const userToken = await AsyncStorage.getItem('userToken');
+        // Sử dụng hàm loadData đã được tích hợp Giải mã và Kiểm tra hết hạn
+        const userToken = await loadData('userToken');
 
         if (userToken) {
-          router.replace('/(tabs)'); // Đã đăng nhập -> Vào App
+          router.replace('/(tabs)'); 
         } else {
-          router.replace('/(auth)/onboarding' as Href); // Chưa đăng nhập -> Vào màn Onboarding
+          router.replace('/(auth)/onboarding' as Href); 
         }
       } catch (error) {
         router.replace('/(auth)/onboarding' as Href);
@@ -46,6 +49,14 @@ export default function SplashScreen() {
           <Text style={styles.subtitle}>o n l i n e   g r o c e r i e t</Text>
         </View>
       </Animated.View>
+
+      {/* [ĐIỂM CỘNG]: Hiển thị Loading/Skeleton khi load data */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+           <ActivityIndicator size="small" color="#fff" />
+           <Text style={styles.loadingText}>Verifying secure connection...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -57,4 +68,8 @@ const styles = StyleSheet.create({
   textContainer: { flexDirection: 'column', justifyContent: 'center' },
   title: { fontSize: 60, color: '#fff', fontWeight: 'bold', letterSpacing: -1, marginBottom: -8 },
   subtitle: { fontSize: 14, color: '#fff', letterSpacing: 2, fontWeight: '500' },
+  
+  // Style cho phần Loading
+  loadingContainer: { position: 'absolute', bottom: 50, alignItems: 'center' },
+  loadingText: { color: '#fff', marginTop: 10, fontSize: 12, opacity: 0.8 }
 });
