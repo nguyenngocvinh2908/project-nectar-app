@@ -4,6 +4,8 @@ export default function RootLayout() {
   return (
     <Stack>
       {/* Các màn hình khác của bạn */}
+      <Stack.Screen name="order-success" options={{ headerShown: false }} />
+      <Stack.Screen name="orders" options={{ headerShown: false }} />
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

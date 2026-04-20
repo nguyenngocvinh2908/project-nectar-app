@@ -7,8 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Import Custom Hook
 import { useStorage } from '../../hooks/useStorage';
 
+// Thêm thuộc tính route cho các mục cần chuyển trang
 const menuItems = [
-  { id: '1', title: 'Orders', icon: 'bag-outline' as const },
+  { id: '1', title: 'Orders', icon: 'bag-outline' as const, route: '/orders' }, // Thêm route ở đây
   { id: '2', title: 'My Details', icon: 'reader-outline' as const },
   { id: '3', title: 'Delivery Address', icon: 'location-outline' as const },
   { id: '4', title: 'Payment Methods', icon: 'card-outline' as const },
@@ -20,13 +21,11 @@ const menuItems = [
 
 export default function AccountScreen() {
   const router = useRouter();
-  const { isLoading, removeData } = useStorage();
+  const { isLoading } = useStorage();
 
   // Hàm xử lý Đăng xuất
   const handleLogout = async () => {
     await AsyncStorage.clear(); 
-    
-    // Đẩy người dùng về trang Login
     router.replace('/(auth)/login');
   };
 
@@ -54,7 +53,17 @@ export default function AccountScreen() {
         {/* --- DANH SÁCH MENU --- */}
         <View style={styles.menuContainer}>
           {menuItems.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.menuItem} activeOpacity={0.7}>
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.menuItem} 
+              activeOpacity={0.7}
+              onPress={() => {
+                // Nếu mục menu có khai báo route thì mới chuyển trang
+                if (item.route) {
+                  router.push(item.route as any);
+                }
+              }}
+            >
               <View style={styles.menuItemLeft}>
                 <Ionicons name={item.icon} size={24} color="#181725" style={styles.menuIcon} />
                 <Text style={styles.menuTitle}>{item.title}</Text>
