@@ -53,8 +53,6 @@ Dùng camera điện thoại quét mã QR hiện trên terminal để mở app.
 
 ## 4. Ảnh Demo (Minh chứng kết quả)
 
-> 📌 **Ghi chú:** Chụp 9 tấm ảnh và chèn vào thư mục `/assets/screenshots` rồi link vào đây.
-
 ### Luồng Xác thực (Ảnh 1–3)
 | Ảnh 1 | Ảnh 2 | Ảnh 3 |
 |-------|-------|-------|
