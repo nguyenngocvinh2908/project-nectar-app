@@ -3,28 +3,22 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Image, TouchableOpacity,
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-// --- DỮ LIỆU GIẢ ---
-const exclusiveOffers = [
-  { id: '1', name: 'Organic Bananas', qty: '7pcs, Priceg', price: '$4.99', image: { url: 'https://forpeasantz.com/data/cms-image/NAY%20CHUOI%20DA%20TACH%20NEN.png'} },
-  { id: '2', name: 'Red Apple', qty: '1kg, Priceg', price: '$4.99', image: require('../../assets/images/apple.png') },
-  { id: '3', name: 'Organic Grapes', qty: '2pcs, Priceg', price: '$4.99', image: { url: 'https://cdn.hstatic.net/products/200000863755/thi_t_k__ch_a_c__t_n__25__f230c39b5aae4d63a921827c411b3676_large.png'} }
-];
+// 1. NHẬP KHO DỮ LIỆU ĐỘNG TỪ FILE DATA
+import { productsData } from '../../data';
 
-const bestSelling = [
-  { id: '4', name: 'Bell Pepper Red', qty: '1kg, Priceg', price: '$4.99', image: require('../../assets/images/fuel.png') },
-  { id: '5', name: 'Ginger', qty: '250gm, Priceg', price: '$4.99', image: require('../../assets/images/ginger.png') },
-  { id: '6', name: 'Onion', qty: '150gm, Priceg', price: '$4.99', image: {url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0Lgr2r7h0WPrcxTrj6LjnqNBZxETTd9-VpQ&s'}},
-];
+// Tự động chia sản phẩm ra các mục (Giả lập việc gọi API phân loại)
+// Lấy 5 sản phẩm đầu tiên làm Exclusive Offers
+const exclusiveOffers = productsData.slice(5, 8); 
+// Lấy 5 sản phẩm tiếp theo làm Best Selling
+const bestSelling = productsData.slice(8, 12);    
+// Lấy 5 sản phẩm cuối làm Groceries
+const groceriesProducts = productsData.slice(15, 17); 
 
+// Riêng phần Danh mục (Categories) thường có màu sắc UI đặc thù nên có thể giữ nguyên mảng này
 const categories = [
-  { id: '1', name: 'Pulses', color: '#F8A44C', bgColor: '#FEF1E4', image: require('../../assets/images/pulses.png') },
-  { id: '2', name: 'Rice', color: '#53B175', bgColor: '#E5F3EA', image: require('../../assets/images/rice.png') },
+  { id: 'cat1', name: 'Pulses', color: '#F8A44C', bgColor: '#FEF1E4', image: require('../../assets/images/pulses.png') },
+  { id: 'cat2', name: 'Rice', color: '#53B175', bgColor: '#E5F3EA', image: require('../../assets/images/rice.png') },
 ];
-
-const groceries = [
-  { id: '7', name: 'Beaf Bone', qty: '1kg, Priceg', price: '$4.99', image: require('../../assets/images/beaf.png') },
-  { id: '8', name: 'Broller Chicken', qty: '1kg, Priceg', price: '$4.99', image: require('../../assets/images/chicken.png') },
-]
 
 // --- COMPONENT TÁI SỬ DỤNG ---
 const SectionHeader = ({ title }: { title: string }) => {
@@ -38,23 +32,31 @@ const SectionHeader = ({ title }: { title: string }) => {
   );
 };
 
+// 2. NÂNG CẤP PRODUCT CARD ĐỂ TRUYỀN ID
 const ProductCard = ({ item }: { item: any }) => {
-  // Khai báo công cụ chuyển trang
   const router = useRouter(); 
 
   return (
-    // Bọc TouchableOpacity ở ngoài cùng để cả cái khung thẻ đều bấm được
     <TouchableOpacity 
       activeOpacity={0.8} 
-      onPress={() => router.push('/product-detail')}
+      // KHI BẤM VÀO: Truyền đúng cái ID của sản phẩm sang trang Product Detail
+      onPress={() => router.push({ pathname: '/product-detail', params: { id: item.id } })}
     >
       <View style={styles.productCard}>
-        <Image source={item.image} style={styles.productImage} resizeMode="contain" />
+        {/* Xử lý hiển thị mượt mà cả ảnh từ máy (require) và ảnh từ web (url) */}
+        <Image 
+          source={item.image.url ? { uri: item.image.url } : item.image} 
+          style={styles.productImage} 
+          resizeMode="contain" 
+        />
         <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.productQty}>{item.qty}</Text>
         
         <View style={styles.productBottom}>
-          <Text style={styles.productPrice}>{item.price}</Text>
+          {/* Tự động format giá tiền nếu trong data.js bạn để dạng số (number) */}
+          <Text style={styles.productPrice}>
+            ${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}
+          </Text>
           <TouchableOpacity style={styles.addButton}>
             <Ionicons name="add" size={24} color="#fff" />
           </TouchableOpacity>
@@ -100,38 +102,38 @@ export default function HomeScreen() {
         {/* Danh sách Exclusive Offer */}
         <SectionHeader title="Exclusive Offer" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalList}>
-          {exclusiveOffers.map((item) => {
-            return <ProductCard key={item.id} item={item} />;
-          })}
+          {exclusiveOffers.map((item) => (
+            <ProductCard key={item.id} item={item} />
+          ))}
           <View style={{ width: 25 }} />
         </ScrollView>
 
         {/* Danh sách Best Selling */}
         <SectionHeader title="Best Selling" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalList}>
-          {bestSelling.map((item) => {
-            return <ProductCard key={item.id} item={item} />;
-          })}
+          {bestSelling.map((item) => (
+            <ProductCard key={item.id} item={item} />
+          ))}
           <View style={{ width: 25 }} />
         </ScrollView>
 
         {/* Danh mục Groceries */}
         <SectionHeader title="Groceries" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalList}>
-          {categories.map((item) => {
-            return (
-              <TouchableOpacity key={item.id} style={[styles.categoryCard, { backgroundColor: item.bgColor }]}>
-                <Image source={item.image} style={styles.categoryImage} />
-                <Text style={styles.categoryText}>{item.name}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {categories.map((item) => (
+            <TouchableOpacity key={item.id} style={[styles.categoryCard, { backgroundColor: item.bgColor }]}>
+              <Image source={item.image} style={styles.categoryImage} />
+              <Text style={styles.categoryText}>{item.name}</Text>
+            </TouchableOpacity>
+          ))}
           <View style={{ width: 25 }} />
         </ScrollView>
+        
+        {/* Sản phẩm Groceries */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalList}>
-          {groceries.map((item) => {
-            return <ProductCard key={item.id} item={item} />;
-          })}
+          {groceriesProducts.map((item) => (
+            <ProductCard key={item.id} item={item} />
+          ))}
           <View style={{ width: 25 }} />
         </ScrollView>
 
@@ -151,9 +153,6 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: '#181B19' },
   bannerContainer: { marginHorizontal: 25, height: 115, borderRadius: 15, overflow: 'hidden', marginBottom: 30 },
   bannerImage: { width: '100%', height: '100%' },
-  bannerOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.8)', justifyContent: 'center', alignItems: 'center' },
-  bannerTitle: { fontSize: 22, fontWeight: 'bold', color: '#181725' },
-  bannerSubtitle: { fontSize: 14, color: '#53B175', fontWeight: '600', marginTop: 5 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 25, marginBottom: 15 },
   sectionTitle: { fontSize: 24, fontWeight: 'bold', color: '#181725' },
   seeAllText: { fontSize: 16, color: '#53B175', fontWeight: '600' },

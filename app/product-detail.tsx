@@ -1,28 +1,81 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Ionicons, AntDesign, MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+
+// Nhập kho dữ liệu và hook Storage
+import { productsData } from '../data'; 
+import { useStorage } from '../hooks/useStorage';
 
 export default function ProductDetailScreen() {
   const router = useRouter();
   
-  // State quản lý số lượng và trạng thái mở rộng của Product Detail
+  // Lấy ID truyền sang từ các trang danh sách (Home, Explore...)
+  const { id } = useLocalSearchParams();
+  
+  // Tìm đúng sản phẩm trong data.js dựa vào ID. 
+  // (Nếu lỗi không thấy ID, mặc định lấy sản phẩm đầu tiên để app không bị crash)
+  const product = productsData.find((item: any) => item.id === id) || productsData[0];
+
+  // Các State quản lý giao diện
   const [quantity, setQuantity] = useState(1);
   const [isDetailOpen, setIsDetailOpen] = useState(true);
+  
+  // Khởi tạo hook Storage
+  const { loadData, saveData, isLoading } = useStorage();
 
-  // Hàm xử lý tăng giảm số lượng
   const increaseQty = () => setQuantity(prev => prev + 1);
   const decreaseQty = () => {
     if (quantity > 1) setQuantity(prev => prev - 1);
+  };
+
+  // Hàm xử lý Thêm vào Giỏ hàng
+  const handleAddToBasket = async () => {
+    try {
+      // 1. Đọc giỏ hàng hiện tại từ ổ cứng lên
+      const currentCart = await loadData('cart_items') || [];
+      
+      // 2. Tạo object sản phẩm chuẩn bị thêm (Lấy data thật của sản phẩm đang xem)
+      const productToAdd = {
+        id: product.id,
+        name: product.name,
+        qty: product.qty,
+        price: product.price, // Giá tiền lấy chuẩn từ data
+        image: product.image,
+        quantity: quantity // Số lượng người dùng vừa bấm chọn trên màn hình
+      };
+
+      // 3. Kiểm tra xem sản phẩm này đã có trong giỏ hàng chưa
+      const existingItemIndex = currentCart.findIndex((item: any) => item.id === productToAdd.id);
+      
+      let updatedCart;
+      if (existingItemIndex > -1) {
+        // Nếu có rồi -> Chỉ cộng dồn số lượng
+        updatedCart = [...currentCart];
+        updatedCart[existingItemIndex].quantity += quantity;
+      } else {
+        // Nếu chưa có -> Thêm hẳn một dòng mới vào mảng
+        updatedCart = [...currentCart, productToAdd];
+      }
+
+      // 4. Lưu lại mảng giỏ hàng mới xuống Storage
+      await saveData('cart_items', updatedCart);
+      
+      // 5. Thông báo và chuyển hướng sang trang Cart
+      alert('Đã thêm ' + product.name + ' vào giỏ hàng!');
+      router.push('/(tabs)/cart');
+      
+    } catch (error) {
+      console.error("Lỗi khi thêm vào giỏ hàng:", error);
+    }
   };
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* Khung chứa ảnh sản phẩm (Nền xám nhạt bo góc dưới) */}
+        {/* Khung chứa ảnh sản phẩm */}
         <View style={styles.imageContainer}>
-          {/* Header Buttons (Back & Share) */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
               <Ionicons name="chevron-back" size={28} color="#181725" />
@@ -32,14 +85,13 @@ export default function ProductDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Ảnh Sản Phẩm */}
+          {/* HIỂN THỊ ẢNH ĐỘNG TỪ DATA */}
           <Image 
-            source={require('../assets/images/apple-detail.png')} 
+            source={product.image?.url ? { uri: product.image.url } : product.image} 
             style={styles.productImage}
             resizeMode="contain"
           />
           
-          {/* Dấu chấm giả lập Carousel */}
           <View style={styles.dotsContainer}>
             <View style={[styles.dot, styles.activeDot]} />
             <View style={styles.dot} />
@@ -47,21 +99,21 @@ export default function ProductDetailScreen() {
           </View>
         </View>
 
-        {/* PHẦN NỘI DUNG CHI TIẾT (Nền trắng) */}
+        {/* PHẦN NỘI DUNG CHI TIẾT */}
         <View style={styles.contentContainer}>
           
-          {/* Tên sản phẩm & Nút yêu thích */}
+          {/* Tên & Trọng lượng động */}
           <View style={styles.titleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.productName}>Naturel Red Apple</Text>
-              <Text style={styles.productWeight}>1kg, Price</Text>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productWeight}>{product.qty}</Text>
             </View>
             <TouchableOpacity>
               <MaterialIcons name="favorite-border" size={28} color="#7C7C7C" />
             </TouchableOpacity>
           </View>
 
-          {/* Số lượng & Giá tiền */}
+          {/* Số lượng & Giá tiền động */}
           <View style={styles.priceRow}>
             <View style={styles.quantityContainer}>
               <TouchableOpacity onPress={decreaseQty}>
@@ -74,10 +126,12 @@ export default function ProductDetailScreen() {
                 <AntDesign name="plus" size={24} color="#53B175" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.priceText}>$4.99</Text>
+            <Text style={styles.priceText}>
+              ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
+            </Text>
           </View>
 
-          {/* Product Detail (Mở rộng/Thu gọn) */}
+          {/* Product Detail */}
           <View style={styles.sectionContainer}>
             <TouchableOpacity 
               style={styles.sectionHeader} 
@@ -88,7 +142,7 @@ export default function ProductDetailScreen() {
             </TouchableOpacity>
             {isDetailOpen && (
               <Text style={styles.descriptionText}>
-                Apples Are Nutritious. Apples May Be Good For Weight Loss. Apples May Be Good For Your Heart. As Part Of A Healthful And Varied Diet.
+                {(product as any).description || `Đây là thông tin chi tiết của sản phẩm ${product.name}. Sản phẩm đạt chuẩn chất lượng cao, an toàn cho sức khỏe và gia đình bạn.`}
               </Text>
             )}
           </View>
@@ -122,10 +176,16 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Nút Add To Basket (Được ghim ở dưới cùng) */}
+      {/* Nút Add To Basket ghim ở dưới cùng */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.addButton}>
-          <Text style={styles.addButtonText}>Add To Basket</Text>
+        <TouchableOpacity 
+          style={styles.addButton} 
+          onPress={handleAddToBasket}
+          disabled={isLoading} // Khóa nút nếu đang xử lý lưu dữ liệu
+        >
+          <Text style={styles.addButtonText}>
+            {isLoading ? "Adding..." : "Add To Basket"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -135,8 +195,7 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  scrollContent: { paddingBottom: 100 }, // Tạo khoảng trống cho nút Add To Basket ở dưới
-  
+  scrollContent: { paddingBottom: 100 }, 
   imageContainer: {
     backgroundColor: '#F2F3F2',
     borderBottomLeftRadius: 25,

@@ -80,5 +80,17 @@ export const productsData = [
     id: '15', name: 'Pepsi Can', qty: '330ml, Price', price: 4.99, 
     category: 'Beverages', brand: 'Pepsi',
     image: require('./assets/images/beverages-06.png') 
+  },
+
+  // NHÓM THỊT
+  { 
+    id: '16', name: 'Beef Bone', qty: '1kg, Priceg', price: 4.99, 
+    category: 'Mean', brand: 'Individual Collection',
+    image: require('./assets/images/beaf.png') 
+  },
+  { 
+    id: '17', name: 'Broiler Chicken', qty: '1kg, Priceg', price: 4.99, 
+    category: 'Mean', brand: 'Individual Collection',
+    image: require('./assets/images/chicken.png') 
   }
 ];

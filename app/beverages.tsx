@@ -1,56 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Platform, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
-// --- MOCK DATA: Danh sách đồ uống ---
-const beverages = [
-  { 
-    id: '1', 
-    name: 'Diet Coke', 
-    qty: '355ml, Price', 
-    price: '$1.99', 
-    image: require('../assets/images/beverages-01.png')
-  },
-  { 
-    id: '2', 
-    name: 'Sprite Can', 
-    qty: '325ml, Price', 
-    price: '$1.50', 
-    image: require('../assets/images/beverages-02.png')
-  },
-  { 
-    id: '3', 
-    name: 'Apple & Grape Juice', 
-    qty: '2L, Price', 
-    price: '$15.99', 
-    image: require('../assets/images/beverages-03.png')
-  },
-  { 
-    id: '4', 
-    name: 'Orange Juice', 
-    qty: '2L, Price', 
-    price: '$15.99', 
-    image: require('../assets/images/beverages-04.png') 
-  },
-  { 
-    id: '5', 
-    name: 'Coca Cola Can', 
-    qty: '325ml, Price', 
-    price: '$4.99', 
-    image: require('../assets/images/beverages-05.png') 
-  },
-  { 
-    id: '6', 
-    name: 'Pepsi Can', 
-    qty: '330ml, Price', 
-    price: '$4.99', 
-    image: require('../assets/images/beverages-06.png') 
-  },
-];
+// 1. Nhập kho dữ liệu thật
+import { productsData } from '../data';
 
-export default function BeveragesScreen() {
+export default function CategoryProductsScreen() {
   const router = useRouter();
+  
+  // 2. Nhận tên danh mục được truyền sang từ trang Explore
+  const { categoryName } = useLocalSearchParams();
+  
+  // Nếu không có category nào truyền sang, mặc định lấy 'Beverages' để tránh lỗi
+  const currentCategory = categoryName ? (categoryName as string) : 'Beverages';
+
+  // 3. Lọc ra các sản phẩm chỉ thuộc danh mục hiện tại
+  const categoryProducts = productsData.filter(item => item.category === currentCategory);
 
   // Component render từng thẻ sản phẩm
   const renderProductItem = ({ item }: { item: any }) => {
@@ -58,15 +24,19 @@ export default function BeveragesScreen() {
       <TouchableOpacity 
         style={styles.productCard}
         activeOpacity={0.8}
-        // Khi bấm vào đồ uống, cũng cho phép nhảy sang trang Chi tiết luôn
-        onPress={() => router.push('/product-detail')}
+        // 4. TRUYỀN ID SẢN PHẨM sang trang Detail khi bấm vào
+        onPress={() => router.push({ pathname: '/product-detail', params: { id: item.id } })}
       >
-        <Image source={item.image} style={styles.productImage} resizeMode="contain" />
+        <Image 
+          source={item.image.url ? { uri: item.image.url } : item.image} 
+          style={styles.productImage} 
+          resizeMode="contain" 
+        />
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
         <Text style={styles.productQty}>{item.qty}</Text>
         
         <View style={styles.productBottom}>
-          <Text style={styles.productPrice}>{item.price}</Text>
+          <Text style={styles.productPrice}>${typeof item.price === 'number' ? item.price.toFixed(2) : item.price}</Text>
           <TouchableOpacity style={styles.addButton}>
             <Ionicons name="add" size={24} color="#fff" />
           </TouchableOpacity>
@@ -79,26 +49,42 @@ export default function BeveragesScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         
-        {/* Header: Nút Back, Tiêu đề, Nút Filter */}
+        {/* Header: Nút Back, Tiêu đề Động, Nút Filter */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
             <Ionicons name="chevron-back" size={28} color="#181725" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Beverages</Text>
-          <TouchableOpacity style={styles.iconButton}>
+          {/* HIỂN THỊ TÊN DANH MỤC ĐỘNG TẠI ĐÂY */}
+          <Text style={styles.headerTitle}>{currentCategory}</Text>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => router.push({
+              pathname: '/filter',
+              params: {
+                // Truyền danh mục hiện tại sang để trang Filter tự động tick sẵn
+                currentCategories: JSON.stringify([currentCategory]), 
+                currentBrands: JSON.stringify([]) 
+              }
+            })}
+          >
             <Ionicons name="options-outline" size={28} color="#181725" />
           </TouchableOpacity>
         </View>
 
-        {/* Lưới Sản Phẩm */}
+        {/* Lưới Sản Phẩm Động */}
         <FlatList
-          data={beverages}
+          data={categoryProducts}
           keyExtractor={(item) => item.id}
           renderItem={renderProductItem}
           numColumns={2}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.gridContainer}
           columnWrapperStyle={styles.rowWrapper}
+          ListEmptyComponent={
+            <Text style={{textAlign: 'center', marginTop: 50, color: '#7C7C7C'}}>
+              Không có sản phẩm nào trong danh mục này.
+            </Text>
+          }
         />
 
       </View>
@@ -115,7 +101,6 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1,
   },
-  
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -132,7 +117,6 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: 5,
   },
-
   gridContainer: {
     paddingHorizontal: 25,
     paddingBottom: 20,
@@ -141,7 +125,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 15,
   },
-  
   productCard: { 
     width: '47%', 
     height: 250, 
